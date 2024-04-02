@@ -6,7 +6,6 @@ from typing import List
 # Do not touch the client message class!
 # ======================================================================================================================
 
-
 class ClientMessage:
 	"""
 	This class will be filled out and passed to student_entrypoint for your algorithm.
@@ -59,9 +58,77 @@ class ClientMessage:
 # ======================================================================================================================
 
 
+class BBA_0:
+	def  __init__(self):
+		self.rate_prev = 0
+		self.reservoir = 90
+		self.cushion   = 126
+	
+	def adjust_buffer(self):
+		slope 		  = (self.rate_max - self.rate_min) / (self.cushion)
+		expected_rate = self.rate_min + slope * (self.buffer_seconds_until_empty - self.reservoir)
+		return expected_rate
+
+	def get_quality(self,client_message: ClientMessage):
+		self.quality_bitrates 			= client_message.quality_bitrates
+		self.buffer_seconds_until_empty = client_message.buffer_seconds_until_empty
+		self.buffer_seconds_per_chunk 	= client_message.buffer_seconds_per_chunk
+		self.rate_prev 					= client_message.previous_throughput if self.rate_prev == 0 else self.rate_prev
+		self.quality_levels = client_message.quality_levels
+		self.total_seconds_elapsed = client_message.total_seconds_elapsed
+		# self.buffer_current_fill = client_message.buffer_current_fill
+		self.buffer_max_size = client_message.buffer_max_size
+		self.upcoming_quality_bitrates = client_message.upcoming_quality_bitrates
+
+		self.rate_max = self.quality_bitrates[-1]
+		self.rate_min = self.quality_bitrates[0]
+
+		print(f"Quality_levels: ", self.quality_levels)
+		print(f"Total_seconds_elapsed: ", self.total_seconds_elapsed)
+		# print(f"Buffer_current_fill: ", self.buffer_current_fill)
+		print(f"Buffer_max_size: ", self.buffer_max_size)
+		print(f"Rate_Prev: ", self.rate_prev)
+		print(f"Buffer_seconds_until_empty: ", self.buffer_seconds_until_empty)
+		print(f"Quality_bitrates: ", self.quality_bitrates)
+		print("\n")
+	
+		# Determine Rate+ (the next higher rate) and Rate- (the next lower rate)
+		rate_plus = self.rate_plus(self.rate_prev)
+		rate_minus = self.rate_minus(self.rate_prev)
+		self.expected_rate = self.adjust_buffer()
+  
+		if client_message.buffer_seconds_until_empty <= self.reservoir:
+			rate_next = self.rate_min
+		elif client_message.buffer_seconds_until_empty >= (self.reservoir + self.cushion):
+			rate_next = self.rate_max
+		elif self.expected_rate >= rate_plus:
+			rate_next = max([rate for rate in self.quality_bitrates if rate < self.expected_rate])
+		elif self.expected_rate <= rate_minus:
+			rate_next = min([rate for rate in self.quality_bitrates if rate > self.expected_rate])
+		else:
+			rate_next = self.rate_prev
+   
+		self.rate_prev = rate_next
+		quality_next = len([rate for rate in self.quality_bitrates if rate <= rate_next])
+		return quality_next
+   
+	def rate_plus(self):
+		if self.rate_prev == self.rate_max:
+			return self.rate_max
+		else:
+			return min([rate for rate in self.quality_bitrates if rate > self.rate_prev]) # Can do more efficiently
+
+	def rate_minus(self):
+		if self.rate_prev == self.rate_min:
+			return self.rate_min
+		else:
+			return max([rate for rate in self.quality_bitrates if rate < self.rate_prev]) # Can do more efficiently
+
+global bba_class
+bba_class = BBA_0()
+
 # Your helper functions, variables, classes here. You may also write initialization routines to be called
 # when this script is first imported and anything else you wish.
-
 
 def student_entrypoint(client_message: ClientMessage):
 	"""
@@ -84,5 +151,7 @@ def student_entrypoint(client_message: ClientMessage):
 
 	:return: float Your quality choice. Must be one in the range [0 ... quality_levels - 1] inclusive.
 	"""
-	# BBA-0 Initi
-	return client_message.quality_levels - 1  # Let's see what happens if we select the highest bitrate every time
+ 
+	return bba_class.get_quality(client_message)
+    
+	# return client_message.quality_levels - 1  # Let's see what happens if we select the highest bitrate every time 
