@@ -59,40 +59,42 @@ class ClientMessage:
 # ======================================================================================================================
 
 
-class BBA_0:
+class BBA_2:
 	def  __init__(self):
 		self.rate_prev 	  = 0
 		self.quality_prev = 0
 		self.reservoir 	  = 11 
 		self.cushion   	  = 16
 		self.X    = 60 
-	
+		self.change_bandwidth = 0
+		self.previous_buffer = 0
+			
 	def adjust_buffer(self):
 		slope 		  = (self.rate_max - self.rate_min) / (self.cushion)
 		expected_rate = self.rate_min + slope * (self.buffer_seconds_until_empty - self.reservoir)
 		return expected_rate
 
-	# def adjust_reservoir(self):
-	# 	adjustment = 0
-	# 	pos_vals = 0
-	# 	neg_vals = 0
-	# 	idx = 0
+	def adjust_reservoir(self):
+		adjustment = 0
+		pos_vals = 0
+		neg_vals = 0
+		idx = 0
 
-	# 	# print(f"The number of upcoming quality bitrates is {len(self.upcoming_quality_bitrates[0])}")
-	# 	for idx, val in enumerate(self.upcoming_quality_bitrates):
-	# 		pos_vals += val[self.quality_prev]
-	# 		if idx >= self.X:
-	# 			break
-	# 	if idx != 0:
-	# 		neg_vals = self.previous_throughput * idx
-	# 		adjustment = pos_vals - neg_vals
-	# 		# print(f"idx is {idx} and Adjustment is {adjustment}")
-	# 		self.reservoir += adjustment/(idx*3)
+		# print(f"The number of upcoming quality bitrates is {len(self.upcoming_quality_bitrates[0])}")
+		for idx, val in enumerate(self.upcoming_quality_bitrates):
+			pos_vals += val[self.quality_prev]
+			if idx >= self.X:
+				break
+		if idx != 0:
+			neg_vals = self.previous_throughput * idx
+			adjustment = pos_vals - neg_vals
+			# print(f"idx is {idx} and Adjustment is {adjustment}")
+			self.reservoir += adjustment/(idx*3)
 			
-	# 		# self.reservoir += adjustment
-	# 		if self.reservoir < 0:
-	# 			self.reservoir = 0
-	# 		# print(f"Reservoir is {self.reservoir}")
+			# self.reservoir += adjustment
+			if self.reservoir < 0:
+				self.reservoir = 0
+			# print(f"Reservoir is {self.reservoir}")
     
 	def get_quality(self,client_message: ClientMessage):
 		self.quality_bitrates 			= client_message.quality_bitrates
@@ -111,9 +113,13 @@ class BBA_0:
 		rate_plus  = self.rate_plus()
 		rate_minus = self.rate_minus()
 		self.expected_rate = self.adjust_buffer()
-  
+		self.change_bandwidth = self.buffer_seconds_per_chunk - self.previous_buffer
+		self.previous_buffer = self.buffer_seconds_per_chunk
 		if client_message.buffer_seconds_until_empty <= self.reservoir:
-			rate_next = self.rate_min
+			if self.change_bandwidth > 0.875*self.buffer_seconds_per_chunk:
+				rate_next = rate_plus
+			else:
+				rate_next = self.rate_min
 		elif client_message.buffer_seconds_until_empty >= (self.reservoir + self.cushion):
 			rate_next = self.rate_max
 		elif self.expected_rate >= rate_plus:
@@ -141,8 +147,9 @@ class BBA_0:
 		else:
 			return max([rate for rate in self.quality_bitrates if rate < self.rate_prev])
 
+
 global bba_class
-bba_class = BBA_0()
+bba_class = BBA_2()
 
 # Your helper functions, variables, classes here. You may also write initialization routines to be called
 # when this script is first imported and anything else you wish.
