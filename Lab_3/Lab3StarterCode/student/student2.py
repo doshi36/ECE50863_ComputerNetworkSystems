@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 
 # Adapted from code by Zach Peats
 
@@ -60,41 +61,55 @@ class ClientMessage:
 
 class BBA_0:
 	def  __init__(self):
-		self.rate_prev = 0
-		self.reservoir = 90
-		self.cushion   = 126
+		self.rate_prev 	  = 0
+		self.quality_prev = 0
+		self.reservoir 	  = 11 
+		self.cushion   	  = 16
+		self.X    = 60 
 	
 	def adjust_buffer(self):
 		slope 		  = (self.rate_max - self.rate_min) / (self.cushion)
 		expected_rate = self.rate_min + slope * (self.buffer_seconds_until_empty - self.reservoir)
 		return expected_rate
 
+	# def adjust_reservoir(self):
+	# 	adjustment = 0
+	# 	pos_vals = 0
+	# 	neg_vals = 0
+	# 	idx = 0
+
+	# 	# print(f"The number of upcoming quality bitrates is {len(self.upcoming_quality_bitrates[0])}")
+	# 	for idx, val in enumerate(self.upcoming_quality_bitrates):
+	# 		pos_vals += val[self.quality_prev]
+	# 		if idx >= self.X:
+	# 			break
+	# 	if idx != 0:
+	# 		neg_vals = self.previous_throughput * idx
+	# 		adjustment = pos_vals - neg_vals
+	# 		# print(f"idx is {idx} and Adjustment is {adjustment}")
+	# 		self.reservoir += adjustment/(idx*3)
+			
+	# 		# self.reservoir += adjustment
+	# 		if self.reservoir < 0:
+	# 			self.reservoir = 0
+	# 		# print(f"Reservoir is {self.reservoir}")
+    
 	def get_quality(self,client_message: ClientMessage):
 		self.quality_bitrates 			= client_message.quality_bitrates
 		self.buffer_seconds_until_empty = client_message.buffer_seconds_until_empty
 		self.buffer_seconds_per_chunk 	= client_message.buffer_seconds_per_chunk
-		self.rate_prev 					= client_message.previous_throughput if self.rate_prev == 0 else self.rate_prev
-		self.quality_levels = client_message.quality_levels
-		self.total_seconds_elapsed = client_message.total_seconds_elapsed
-		# self.buffer_current_fill = client_message.buffer_current_fill
-		self.buffer_max_size = client_message.buffer_max_size
-		self.upcoming_quality_bitrates = client_message.upcoming_quality_bitrates
-
+		self.quality_levels 			= client_message.quality_levels
+		self.total_seconds_elapsed 		= client_message.total_seconds_elapsed
+		self.rate_prev 					= client_message.quality_bitrates[self.quality_prev]
+		self.buffer_max_size 			= client_message.buffer_max_size
+		self.upcoming_quality_bitrates  = client_message.upcoming_quality_bitrates
+		self.previous_throughput 		= client_message.previous_throughput
 		self.rate_max = self.quality_bitrates[-1]
 		self.rate_min = self.quality_bitrates[0]
-
-		print(f"Quality_levels: ", self.quality_levels)
-		print(f"Total_seconds_elapsed: ", self.total_seconds_elapsed)
-		# print(f"Buffer_current_fill: ", self.buffer_current_fill)
-		print(f"Buffer_max_size: ", self.buffer_max_size)
-		print(f"Rate_Prev: ", self.rate_prev)
-		print(f"Buffer_seconds_until_empty: ", self.buffer_seconds_until_empty)
-		print(f"Quality_bitrates: ", self.quality_bitrates)
-		print("\n")
-	
+		self.adjust_reservoir()
 		# Determine Rate+ (the next higher rate) and Rate- (the next lower rate)
-		rate_plus = self.rate_plus(self.rate_prev)
-		rate_minus = self.rate_minus(self.rate_prev)
+		rate_plus  = self.rate_plus()
+		rate_minus = self.rate_minus()
 		self.expected_rate = self.adjust_buffer()
   
 		if client_message.buffer_seconds_until_empty <= self.reservoir:
@@ -107,22 +122,24 @@ class BBA_0:
 			rate_next = min([rate for rate in self.quality_bitrates if rate > self.expected_rate])
 		else:
 			rate_next = self.rate_prev
-   
+
 		self.rate_prev = rate_next
-		quality_next = len([rate for rate in self.quality_bitrates if rate <= rate_next])
+		quality_next = self.quality_bitrates.index(rate_next)
+		self.quality_prev = quality_next
+  
 		return quality_next
    
 	def rate_plus(self):
-		if self.rate_prev == self.rate_max:
+		if self.quality_prev == self.quality_levels - 1:
 			return self.rate_max
 		else:
-			return min([rate for rate in self.quality_bitrates if rate > self.rate_prev]) # Can do more efficiently
+			return min([rate for rate in self.quality_bitrates if rate > self.rate_prev])
 
 	def rate_minus(self):
-		if self.rate_prev == self.rate_min:
+		if self.quality_prev == 0:
 			return self.rate_min
 		else:
-			return max([rate for rate in self.quality_bitrates if rate < self.rate_prev]) # Can do more efficiently
+			return max([rate for rate in self.quality_bitrates if rate < self.rate_prev])
 
 global bba_class
 bba_class = BBA_0()
