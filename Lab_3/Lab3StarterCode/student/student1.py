@@ -69,10 +69,16 @@ class RobustMPC:
 		self.quality_prev = 0
 	
 	def pred_error_throughput(self):
+		if self.previous_throughput == 0:
+			self.prev_throughputs += [2]
+			self.pred_throughputs += [2]
+			return
+		
 		self.prev_throughputs += [self.previous_throughput]
 		error = 0
 		if len(self.pred_throughputs) < self.W:
-			return self.previous_throughput
+			self.pred_throughputs+= [self.previous_throughput]
+			return
 		
 		mean = statistics.harmonic_mean(self.prev_throughputs[-self.W:])
 
@@ -87,15 +93,18 @@ class RobustMPC:
 		quality_sum = 0
 		buffer_sum = 0
 		variant_sum = 0
+		buffer_sum = self.buffer_seconds_until_empty
 		for idx in range(len(combos)):
+			if self.buffer_seconds_until_empty < 11:
+				buffer_sum -= 11
 			quality_sum += combos[idx]
-			buffer_sum += (self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput) - (self.buffer_seconds_until_empty)
+			buffer_sum -= ((self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput))
 			if idx != len(combos) - 1:
 				variant_sum += abs((combos[idx + 1] - combos[idx]))
 		
-		return self.quality_coefficient*quality_sum-self.variation_coefficient*variant_sum+self.rebuffering_coefficient*(buffer_sum)
+		return self.quality_coefficient*quality_sum-self.variation_coefficient*variant_sum+(self.rebuffering_coefficient)*(buffer_sum)
 
-	def get_qoe(self):
+	def get_qoe(self): 
 		numbers = [i for i in range(self.quality_levels)]
 		combos = list(product(numbers, repeat=self.W) if len(self.upcoming_quality_bitrates) >= self.W else product(numbers, repeat=len(self.upcoming_quality_bitrates)))
 		max_qoe = -999
@@ -105,7 +114,10 @@ class RobustMPC:
 			if qoe > max_qoe:
 				max_qoe = qoe
 				qoe_idx = idx
-		
+		if max_qoe == -999:
+			return 0
+		if combos[qoe_idx] == ():
+			return self.prev_qualities[-1]
 		return combos[qoe_idx][0]
 	
 
@@ -121,11 +133,14 @@ class RobustMPC:
 		self.previous_throughput 		= client_message.previous_throughput
 		self.quality_coefficient = client_message.quality_coefficient
 		self.variation_coefficient = client_message.variation_coefficient
-		self.rebuffering_coefficient = client_message.rebuffering_coefficient
+		self.rebuffering_coefficient = client_message.rebuffering_coefficient/2.7
 		self.upcoming_quality_bitrates = client_message.upcoming_quality_bitrates
 
 		self.pred_error_throughput()
-		return self.get_qoe()
+		qoe_returned = self.get_qoe()
+		self.prev_qualities += [qoe_returned]
+		return qoe_returned
+
 
 # Your helper functions, variables, classes here. You may also write initialization routines to be called
 # when this script is first imported and anything else you wish.
@@ -153,5 +168,5 @@ def student_entrypoint(client_message: ClientMessage):
 
 	:return: float Your quality choice. Must be one in the range [0 ... quality_levels - 1] inclusive.
 	"""
-	mpc_class.get_quality()
-	return 0  # Let's see what happens if we select the lowest bitrate every time
+	return mpc_class.get_quality(client_message=client_message)
+	# Let's see what happens if we select the lowest bitrate every time

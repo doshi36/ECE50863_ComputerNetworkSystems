@@ -80,7 +80,6 @@ class BBA_2:
 		neg_vals = 0
 		idx = 0
 
-		# print(f"The number of upcoming quality bitrates is {len(self.upcoming_quality_bitrates[0])}")
 		for idx, val in enumerate(self.upcoming_quality_bitrates):
 			pos_vals += val[self.quality_prev]
 			if idx >= self.X:
@@ -88,13 +87,10 @@ class BBA_2:
 		if idx != 0:
 			neg_vals = self.previous_throughput * idx
 			adjustment = pos_vals - neg_vals
-			# print(f"idx is {idx} and Adjustment is {adjustment}")
 			self.reservoir += adjustment/(idx*3)
 			
-			# self.reservoir += adjustment
 			if self.reservoir < 0:
 				self.reservoir = 0
-			# print(f"Reservoir is {self.reservoir}")
     
 	def get_quality(self,client_message: ClientMessage):
 		self.quality_bitrates 			= client_message.quality_bitrates
@@ -109,7 +105,6 @@ class BBA_2:
 		self.rate_max = self.quality_bitrates[-1]
 		self.rate_min = self.quality_bitrates[0]
 		self.adjust_reservoir()
-		# Determine Rate+ (the next higher rate) and Rate- (the next lower rate)
 		rate_plus  = self.rate_plus()
 		rate_minus = self.rate_minus()
 		self.expected_rate = self.adjust_buffer()
