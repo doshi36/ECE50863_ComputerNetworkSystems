@@ -76,6 +76,7 @@ class RobustMPC:
 		
 		self.prev_throughputs += [self.previous_throughput]
 		error = 0
+  
 		if len(self.pred_throughputs) < self.W:
 			self.pred_throughputs+= [self.previous_throughput]
 			return
@@ -90,23 +91,41 @@ class RobustMPC:
 
 	def calculate_qoe(self,combos):
 		predicted_throughput = self.pred_throughputs[-1]
+		# print("predicted_throughput: ",predicted_throughput)
+		# print("Previous_throughput: ",self.previous_throughput)
 		quality_sum = 0
 		buffer_sum = 0
 		variant_sum = 0
-		buffer_sum = self.buffer_seconds_until_empty
-		for idx in range(len(combos)):
-			if self.buffer_seconds_until_empty < 11:
-				buffer_sum -= 11
-			quality_sum += combos[idx]
-			buffer_sum -= ((self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput))
-			if idx != len(combos) - 1:
-				variant_sum += abs((combos[idx + 1] - combos[idx]))
+		t_k_plus_1 = self.total_seconds_elapsed
+		b_k_plus_1 = self.buffer_seconds_until_empty
+		variant_sum = abs(self.prev_qualities[-1] - combos[0]) if self.prev_qualities != [] and combos != () else 0
 		
-		return self.quality_coefficient*quality_sum-self.variation_coefficient*variant_sum+(self.rebuffering_coefficient)*(buffer_sum)
+		for idx in range(len(combos)):
+			delta_t = max(max(b_k_plus_1 - self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput,0) + self.buffer_seconds_per_chunk - self.buffer_max_size,0)
+			b_k_plus_1 = max(max(b_k_plus_1- self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput,0) + self.buffer_seconds_per_chunk - delta_t,0)
+			t_k_plus_1 = t_k_plus_1 + self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput + delta_t
+			quality_sum += combos[idx] 
+			buffer_sum += max((self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput - b_k_plus_1),0)
+			variant_sum += abs((combos[idx + 1] - combos[idx])) if idx != len(combos) - 1 else 0
+			
+		# for idx in range(len(combos)):
+		# 	if self.buffer_seconds_until_empty < 11:
+		# 		buffer_sum -= 11
+  
+		# 	quality_sum += combos[idx]
+		# 	buffer_sum -= ((self.upcoming_quality_bitrates[idx][combos[idx]]/predicted_throughput))
+  
+		# 	if idx != len(combos) - 1:
+		# 		variant_sum += abs((combos[idx + 1] - combos[idx]))
+
+		
+		qoe_returned =  (quality_sum)-(self.variation_coefficient*1.5*variant_sum)-(self.rebuffering_coefficient*1*buffer_sum)
+  
+		return qoe_returned
 
 	def get_qoe(self): 
 		numbers = [i for i in range(self.quality_levels)]
-		combos = list(product(numbers, repeat=self.W) if len(self.upcoming_quality_bitrates) >= self.W else product(numbers, repeat=len(self.upcoming_quality_bitrates)))
+		combos =  list(product(numbers, repeat=self.W) if len(self.upcoming_quality_bitrates) >= self.W else product(numbers, repeat=len(self.upcoming_quality_bitrates)))
 		max_qoe = -999
 		qoe_idx = 0
 		for idx in range(len(combos)):
@@ -131,10 +150,10 @@ class RobustMPC:
 		self.buffer_max_size 			= client_message.buffer_max_size
 		self.upcoming_quality_bitrates  = client_message.upcoming_quality_bitrates
 		self.previous_throughput 		= client_message.previous_throughput
-		self.quality_coefficient = client_message.quality_coefficient
-		self.variation_coefficient = client_message.variation_coefficient
-		self.rebuffering_coefficient = client_message.rebuffering_coefficient/2.7
-		self.upcoming_quality_bitrates = client_message.upcoming_quality_bitrates
+		self.quality_coefficient 		= client_message.quality_coefficient
+		self.variation_coefficient 		= client_message.variation_coefficient
+		self.rebuffering_coefficient 	= client_message.rebuffering_coefficient
+		self.upcoming_quality_bitrates 	= client_message.upcoming_quality_bitrates
 
 		self.pred_error_throughput()
 		qoe_returned = self.get_qoe()

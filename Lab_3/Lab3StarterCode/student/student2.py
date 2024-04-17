@@ -62,7 +62,7 @@ class BBA_2:
 	def  __init__(self):
 		self.rate_prev 	  = 0
 		self.quality_prev = 0
-		self.reservoir 	  = 11 
+		self.reservoir 	  = 11
 		self.cushion   	  = 16
 		self.X    = 60 
 		self.change_bandwidth = 0
@@ -104,13 +104,14 @@ class BBA_2:
 		self.rate_max = self.quality_bitrates[-1]
 		self.rate_min = self.quality_bitrates[0]
 		self.adjust_reservoir()
+		print("Reservoir: ",self.reservoir)
 		rate_plus  = self.rate_plus()
 		rate_minus = self.rate_minus()
 		self.expected_rate = self.adjust_buffer()
 		self.change_bandwidth = self.buffer_seconds_per_chunk - self.previous_buffer
 		self.previous_buffer = self.buffer_seconds_per_chunk
 		if client_message.buffer_seconds_until_empty <= self.reservoir:
-			if self.change_bandwidth > 0.875*self.buffer_seconds_per_chunk:
+			if self.change_bandwidth > 0.1*self.buffer_seconds_per_chunk: # Better without startup
 				rate_next = rate_plus
 			else:
 				rate_next = self.rate_min
