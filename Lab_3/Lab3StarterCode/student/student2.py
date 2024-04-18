@@ -111,10 +111,10 @@ class BBA_2:
 		self.change_bandwidth = self.buffer_seconds_per_chunk - self.previous_buffer
 		self.previous_buffer = self.buffer_seconds_per_chunk
 		if client_message.buffer_seconds_until_empty <= self.reservoir:
-			if self.change_bandwidth > 0.1*self.buffer_seconds_per_chunk: # Better without startup
-				rate_next = rate_plus
-			else:
-				rate_next = self.rate_min
+			# if self.change_bandwidth > 0.1*self.buffer_seconds_per_chunk: # Better without startup
+			# 	rate_next = rate_plus
+			# else:
+			rate_next = self.rate_min
 		elif client_message.buffer_seconds_until_empty >= (self.reservoir + self.cushion):
 			rate_next = self.rate_max
 		elif self.expected_rate >= rate_plus:
