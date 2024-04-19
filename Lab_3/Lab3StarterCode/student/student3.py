@@ -62,6 +62,63 @@ class ClientMessage:
 # Your helper functions, variables, classes here. You may also write initialization routines to be called
 # when this script is first imported and anything else you wish.
 
+class BOLA:
+	def __init__(self):
+		self.current_quality  = 0
+		self.m_n_prev 		  = 0
+		self.m_n              = 0
+  
+	def get_quality(self, client_message: ClientMessage):
+		self.quality_bitrates 			= client_message.quality_bitrates
+		self.buffer_seconds_until_empty = client_message.buffer_seconds_until_empty
+		self.buffer_seconds_per_chunk 	= client_message.buffer_seconds_per_chunk
+		self.quality_levels 			= client_message.quality_levels
+		self.total_seconds_elapsed 		= client_message.total_seconds_elapsed
+		self.buffer_max_size 			= client_message.buffer_max_size
+		self.upcoming_quality_bitrates  = client_message.upcoming_quality_bitrates
+		self.previous_throughput 		= client_message.previous_throughput
+		self.quality_max = client_message.quality_levels - 1
+		self.gamma = 5/self.buffer_seconds_per_chunk
+		return self.calculate_bola()
+	
+	def max_utility_check(self,v_d):
+		max_utility = float('-inf')
+		max_quality = 0
+		p = self.buffer_seconds_per_chunk
+		for i,S_m in enumerate(self.quality_bitrates):
+			run_value = (((i+1)*v_d)+(v_d*self.gamma*p) - self.buffer_seconds_until_empty) / S_m
+			if run_value > max_utility:
+				max_utility = run_value
+				max_quality = i
+		return max_quality
+
+	def find_max_quality(self,r):
+		p = self.buffer_seconds_per_chunk
+		S_1 = self.quality_bitrates[0]
+		max_val = max(r, S_1/p)
+		return max(list(m for m in range(self.quality_levels) if self.quality_bitrates[m]/p <= max_val))
+
+	def calculate_bola(self):
+		t = min(0, (len(self.upcoming_quality_bitrates) + 1)*self.buffer_seconds_per_chunk)
+		p = self.buffer_seconds_per_chunk
+		t_prime = max(t/2,3*p)
+
+		qd_max = min(self.buffer_max_size, t_prime/p)
+		v_d = (qd_max - 1) / (self.quality_max + (self.gamma * p))
+		self.m_n = self.max_utility_check(v_d)
+		if self.m_n > self.m_n_prev:
+			r = self.previous_throughput
+			m_prime = self.find_max_quality(r)
+			if m_prime >= self.m_n:
+				m_prime = self.m_n
+			elif m_prime < self.m_n_prev:
+				m_prime = self.m_n_prev
+			
+			self.current_quality = m_prime
+   
+		return self.current_quality
+
+bola = BOLA()
 
 def student_entrypoint(client_message: ClientMessage):
 	"""
@@ -84,4 +141,6 @@ def student_entrypoint(client_message: ClientMessage):
 
 	:return: float Your quality choice. Must be one in the range [0 ... quality_levels - 1] inclusive.
 	"""
-	return 0  # Let's see what happens if we select the lowest bitrate every time
+	quality = bola.get_quality(client_message=client_message)  # Let's see what happens if we select the lowest bitrate every time
+	# print("Quality: ", quality)
+	return quality

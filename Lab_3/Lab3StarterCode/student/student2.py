@@ -104,7 +104,7 @@ class BBA_2:
 		self.rate_max = self.quality_bitrates[-1]
 		self.rate_min = self.quality_bitrates[0]
 		self.adjust_reservoir()
-		print("Reservoir: ",self.reservoir)
+		# print("Reservoir: ",self.reservoir)
 		rate_plus  = self.rate_plus()
 		rate_minus = self.rate_minus()
 		self.expected_rate = self.adjust_buffer()
