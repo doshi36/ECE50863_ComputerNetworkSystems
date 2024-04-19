@@ -72,11 +72,7 @@ class BOLA:
 		self.total_chunks 				= 0 
 
 	def ewma_throughput(self, previous_throughput, alpha=0.80):
-		"""
-		Exponentially Weighted Moving Average for throughput estimation.
-		`alpha` is the weighting factor, closer to 1 gives more weight to recent values.
-		"""
-		if self.estimated_throughput == 0:  # First time, initialize with the first known throughput
+		if self.estimated_throughput == 0:  
 			self.estimated_throughput = previous_throughput
 		else:
 			self.estimated_throughput = alpha * previous_throughput + (1 - alpha) * self.estimated_throughput
