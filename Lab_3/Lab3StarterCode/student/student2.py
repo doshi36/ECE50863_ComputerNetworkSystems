@@ -1,3 +1,7 @@
+# Name: Parth R. Doshi, 	Email ID: doshi36@purdue.edu
+# Name: Vignesh Charapalli, Email ID: vcharapa@purdue.edu
+# ABR Algorithm: BBA-2
+
 from typing import List
 
 # Adapted from code by Zach Peats
@@ -146,9 +150,6 @@ class BBA_2:
 global bba_class
 bba_class = BBA_2()
 
-# Your helper functions, variables, classes here. You may also write initialization routines to be called
-# when this script is first imported and anything else you wish.
-
 def student_entrypoint(client_message: ClientMessage):
 	"""
 	Your mission, if you choose to accept it, is to build an algorithm for chunk bitrate selection that provides
@@ -172,5 +173,3 @@ def student_entrypoint(client_message: ClientMessage):
 	"""
  
 	return bba_class.get_quality(client_message)
-    
-	# return client_message.quality_levels - 1  # Let's see what happens if we select the highest bitrate every time 

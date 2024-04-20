@@ -1,3 +1,7 @@
+# Name: Parth R. Doshi, 	Email ID: doshi36@purdue.edu
+# Name: Vignesh Charapalli, Email ID: vcharapa@purdue.edu
+# ABR Algorithm: Our Approach (Adapatation to BOLA)
+
 from typing import List
 
 # Adapted from code by Zach Peats

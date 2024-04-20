@@ -1,3 +1,7 @@
+# Name: Parth R. Doshi, 	Email ID: doshi36@purdue.edu
+# Name: Vignesh Charapalli, Email ID: vcharapa@purdue.edu
+# ABR Algorithm: RobustMPC
+
 from typing import List
 import statistics
 from itertools import product
@@ -91,8 +95,6 @@ class RobustMPC:
 
 	def calculate_qoe(self,combos):
 		predicted_throughput = self.pred_throughputs[-1]
-		# print("predicted_throughput: ",predicted_throughput)
-		# print("Previous_throughput: ",self.previous_throughput)
 		quality_sum = 0
 		buffer_sum = 0
 		variant_sum = 0
@@ -149,9 +151,6 @@ class RobustMPC:
 		self.prev_qualities += [qoe_returned]
 		return qoe_returned
 
-
-# Your helper functions, variables, classes here. You may also write initialization routines to be called
-# when this script is first imported and anything else you wish.
 global mpc_class
 mpc_class = RobustMPC()
 
@@ -177,4 +176,3 @@ def student_entrypoint(client_message: ClientMessage):
 	:return: float Your quality choice. Must be one in the range [0 ... quality_levels - 1] inclusive.
 	"""
 	return mpc_class.get_quality(client_message=client_message)
-	# Let's see what happens if we select the lowest bitrate every time
