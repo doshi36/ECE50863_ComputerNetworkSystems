@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-"""This is the Controller Starter Code for ECE50863 Lab Project 1
-Author: Xin Du
-Email: du201@purdue.edu
-Last Modified Date: December 9th, 2021
+"""This is the Controller Code for ECE50863 Lab Project 1
+Author: Parth R. Doshi
+Email: doshi36@purdue.edu
 """
 
 import sys
