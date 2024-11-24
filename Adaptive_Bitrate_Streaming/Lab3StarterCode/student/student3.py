@@ -10,7 +10,6 @@ from typing import List
 # Do not touch the client message class!
 # ======================================================================================================================
 
-
 class ClientMessage:
 	"""
 	This class will be filled out and passed to student_entrypoint for your algorithm.
